@@ -77,7 +77,7 @@ namespace HistorianDataWalker
             try
             {
                 // Load current settings registering a symbolic reference to this form instance for use by default value expressions
-                m_settings = new Settings(new Dictionary<string, object>{{ "Form", this }}.RegisterSymbols());
+                m_settings = new Settings(new Dictionary<string, object> { { "Form", this } }.RegisterSymbols());
 
                 // Restore last window size/location
                 this.RestoreLayout();
@@ -113,7 +113,7 @@ namespace HistorianDataWalker
             UpdateProgressBar(0);
             SetProgressBarMaximum(100);
 
-            // Kick off a thread to start archive read passing in current config file settings
+            // Kick off a thread to start archive read
             new Thread(ReadArchive) { IsBackground = true }.Start();
         }
 
@@ -123,7 +123,7 @@ namespace HistorianDataWalker
         {
             if (InvokeRequired)
             {
-                BeginInvoke(new Action<object, EventArgs>(FormElementChanged), sender, e);                
+                BeginInvoke(new Action<object, EventArgs>(FormElementChanged), sender, e);
             }
             else
             {
@@ -227,140 +227,178 @@ namespace HistorianDataWalker
                 Ticks operationTime;
                 Ticks operationStartTime;
                 DataPoint point = new DataPoint();
-                Algorithm algorithm = new Algorithm();
+                DateTime firstTimestamp = new DateTime(0L);
+                DateTime lastTimestamp = new DateTime(0L);
 
-                algorithm.ShowMessage = ShowUpdateMessage;
-                algorithm.MessageInterval = m_settings.MessageInterval;
-                algorithm.Log = m_log;
-
-                // Load historian meta-data
-                ShowUpdateMessage(">>> Loading source connection metadata...");
-
-                operationStartTime = DateTime.UtcNow.Ticks;
-                algorithm.Metadata = MetadataRecord.Query(m_settings.HostAddress, m_settings.MetadataPort, m_settings.MetadataTimeout);
-                operationTime = DateTime.UtcNow.Ticks - operationStartTime;
-
-                ShowUpdateMessage("*** Metadata Load Complete ***");
-                ShowUpdateMessage($"Total metadata load time {operationTime.ToElapsedTimeString(3)}...");
-
-                ShowUpdateMessage(">>> Processing filter expression for metadata...");
-
-                operationStartTime = DateTime.UtcNow.Ticks;
-                MeasurementKey[] inputKeys = AdapterBase.ParseInputMeasurementKeys(MetadataRecord.Metadata, false, textBoxPointList.Text, "MeasurementDetail");
-                IEnumerable<ulong> pointIDList = inputKeys.Select(key => (ulong)key.ID);
-                operationTime = DateTime.UtcNow.Ticks - operationStartTime;
-
-                ShowUpdateMessage($">>> Historian read will be for {inputKeys.Length:N0} points based on provided meta-data expression.");
-
-                ShowUpdateMessage("*** Filter Expression Processing Complete ***");
-                ShowUpdateMessage($"Total filter expression processing time {operationTime.ToElapsedTimeString(3)}...");
-
-                ShowUpdateMessage(">>> Reading archive...");
-
-                // Start historian data read
-                operationStartTime = DateTime.UtcNow.Ticks;
-
-                using (SnapDBClient historianClient = new SnapDBClient(m_settings.HostAddress, m_settings.DataPort, m_settings.InstanceName, m_settings.StartTime, m_settings.EndTime, m_settings.FrameRate, pointIDList))
+                using (Algorithm algorithm = new Algorithm())
                 {
-                    // Scan to first record
-                    if (!historianClient.ReadNext(point))
-                        throw new InvalidOperationException("No data for specified time range in openHistorian connection!");
+                    algorithm.ShowMessage = ShowUpdateMessage;
+                    algorithm.MessageInterval = m_settings.MessageInterval;
+                    algorithm.StartTime = m_settings.StartTime;
+                    algorithm.EndTime = m_settings.EndTime;
+                    algorithm.FrameRate = m_settings.FrameRate;
+                    algorithm.TimeRange = timeRange;
+                    algorithm.Log = m_log;
 
-                    ulong currentTimestamp;
-                    receivedPoints++;
+                    // Load historian meta-data
+                    ShowUpdateMessage(">>> Loading source connection metadata...");
 
-                    while (!m_formClosing)
+                    operationStartTime = DateTime.UtcNow.Ticks;
+                    algorithm.Metadata = MetadataRecord.Query(m_settings.HostAddress, m_settings.MetadataPort, m_settings.MetadataTimeout);
+                    operationTime = DateTime.UtcNow.Ticks - operationStartTime;
+
+                    ShowUpdateMessage("*** Metadata Load Complete ***");
+                    ShowUpdateMessage($"Total metadata load time {operationTime.ToElapsedTimeString(3)}...");
+
+                    ShowUpdateMessage(">>> Processing filter expression for metadata...");
+
+                    operationStartTime = DateTime.UtcNow.Ticks;
+                    MeasurementKey[] inputKeys = AdapterBase.ParseInputMeasurementKeys(MetadataRecord.Metadata, false, textBoxPointList.Text, "MeasurementDetail");
+                    List<ulong> pointIDList = inputKeys.Select(key => (ulong)key.ID).ToList();
+                    operationTime = DateTime.UtcNow.Ticks - operationStartTime;
+
+                    // Allow algorithm to augment (or even replace) point ID list as provided by user
+                    algorithm.AugmentPointIDList(pointIDList);
+
+                    ShowUpdateMessage($">>> Historian read will be for {pointIDList.Count:N0} points based on provided meta-data expression and algorithm augmentation.");
+
+                    // Reduce metadata to filtered point list
+                    ShowUpdateMessage($">>> Reducing metadata to the {pointIDList.Count:N0} defined points...");
+
+                    List<MetadataRecord> records = new List<MetadataRecord>();
+
+                    foreach (ulong pointID in pointIDList)
                     {
-                        int timeComparison;
-                        bool readSuccess = true;
+                        MetadataRecord record = algorithm.Metadata.FirstOrDefault(metadata => metadata.PointID == pointID);
 
-                        // Create a new data block for current timestamp and load first/prior point
-                        Dictionary<ulong, DataPoint> dataBlock = new Dictionary<ulong, DataPoint>
+                        if ((object)record != null)
+                            records.Add(record);
+                    }
+
+                    algorithm.Metadata = records;
+
+                    ShowUpdateMessage("*** Filter Expression Processing Complete ***");
+                    ShowUpdateMessage($"Total filter expression processing time {operationTime.ToElapsedTimeString(3)}...");
+
+                    ShowUpdateMessage(">>> Initializing algorithm...");
+                    algorithm.Initialize();
+
+                    ShowUpdateMessage(">>> Starting archive read...");
+
+                    // Start historian data read
+                    operationStartTime = DateTime.UtcNow.Ticks;
+
+                    using (SnapDBClient historianClient = new SnapDBClient(m_settings.HostAddress, m_settings.DataPort, m_settings.InstanceName, m_settings.StartTime, m_settings.EndTime, m_settings.FrameRate, pointIDList))
+                    {
+                        // Scan to first record
+                        if (!historianClient.ReadNext(point))
+                            throw new InvalidOperationException("No data for specified time range in openHistorian connection!");
+
+                        ulong currentTimestamp;
+                        receivedPoints++;
+
+                        while (!m_formClosing)
                         {
-                            [point.PointID] = point.Clone()
-                        };
+                            int timeComparison;
+                            bool readSuccess = true;
 
-                        currentTimestamp = point.Timestamp;
-
-                        // Load remaining data for current timestamp
-                        do
-                        {
-                            // Scan to next record
-                            if (!historianClient.ReadNext(point))
+                            // Create a new data block for current timestamp and load first/prior point
+                            Dictionary<ulong, DataPoint> dataBlock = new Dictionary<ulong, DataPoint>
                             {
-                                readSuccess = false;
+                                [point.PointID] = point.Clone()
+                            };
+
+                            currentTimestamp = point.Timestamp;
+
+                            // Load remaining data for current timestamp
+                            do
+                            {
+                                // Scan to next record
+                                if (!historianClient.ReadNext(point))
+                                {
+                                    readSuccess = false;
+                                    break;
+                                }
+
+                                receivedPoints++;
+                                timeComparison = DataPoint.CompareTimestamps(point.Timestamp, currentTimestamp, m_settings.FrameRate);
+
+                                if (timeComparison == 0)
+                                {
+                                    // Timestamps are compared based on configured frame rate - if archived data rate is
+                                    // higher than configured frame rate, then data block will contain only latest values
+                                    if (dataBlock.ContainsKey(point.PointID))
+                                        duplicatePoints++;
+
+                                    dataBlock[point.PointID] = point.Clone();
+                                }
+                            }
+                            while (timeComparison == 0);
+
+                            // Finished with data read
+                            if (!readSuccess)
+                            {
+                                ShowUpdateMessage(">>> End of data in range encountered...");
                                 break;
                             }
 
-                            receivedPoints++;
-                            timeComparison = DataPoint.CompareTimestamps(point.Timestamp, currentTimestamp, m_settings.FrameRate);
-
-                            if (timeComparison == 0)
+                            if (++processedDataBlocks % m_settings.MessageInterval == 0)
                             {
-                                // Timestamps are compared based on configured frame rate - if archived data rate is
-                                // higher than configured frame rate, then data block will contain only latest values
-                                if (dataBlock.ContainsKey(point.PointID))
-                                    duplicatePoints++;
+                                ShowUpdateMessage($"{Environment.NewLine}{receivedPoints:N0} points{(duplicatePoints > 0 ? $", which included {duplicatePoints:N0} duplicates," : "")} read so far averaging {receivedPoints / (DateTime.UtcNow.Ticks - operationStartTime).ToSeconds():N0} points per second.");
+                                UpdateProgressBar((int)((1.0D - new Ticks(m_settings.EndTime.Ticks - (long)point.Timestamp).ToSeconds() / timeRange) * 100.0D));
+                            }
 
-                                dataBlock[point.PointID] = point.Clone();
+                            try
+                            {
+                                lastTimestamp = new DateTime((long)currentTimestamp);
+
+                                if (firstTimestamp.Ticks == 0L)
+                                    firstTimestamp = lastTimestamp;
+
+                                // Analyze data block
+                                algorithm.Execute(lastTimestamp, dataBlock.Values.ToArray());
+                            }
+                            catch (Exception ex)
+                            {
+                                ShowUpdateMessage($"ERROR: Algorithm exception: {ex.Message}");
+                                m_log.Publish(MessageLevel.Error, "AlgorithmError", "Failed while processing data from the historian", exception: ex);
                             }
                         }
-                        while (timeComparison == 0);
 
-                        // Finished with data read
-                        if (!readSuccess)
+                        operationTime = DateTime.UtcNow.Ticks - operationStartTime;
+
+                        if (m_formClosing)
                         {
-                            ShowUpdateMessage(">>> End of data in range encountered...");
-                            break;
+                            ShowUpdateMessage("*** Historian Read Canceled ***");
+                            UpdateProgressBar(0);
+                        }
+                        else
+                        {
+                            ShowUpdateMessage("*** Historian Read Complete ***");
+                            UpdateProgressBar(100);
                         }
 
-                        if (++processedDataBlocks % m_settings.MessageInterval == 0)
-                        {
-                            ShowUpdateMessage($"{Environment.NewLine}{receivedPoints:N0} points{(duplicatePoints > 0 ? $", which included {duplicatePoints:N0} duplicates," : "")} read so far averaging {receivedPoints / (DateTime.UtcNow.Ticks - operationStartTime).ToSeconds():N0} points per second.");
-                            UpdateProgressBar((int)((1.0D - new Ticks(m_settings.EndTime.Ticks - (long)point.Timestamp).ToSeconds() / timeRange) * 100.0D));
-                        }
+                        algorithm.Complete();
 
-                        try
-                        {
-                            // Analyze data block
-                            algorithm.Execute(new DateTime((long)currentTimestamp), dataBlock.Values.ToArray());
-                        }
-                        catch (Exception ex)
-                        {
-                            ShowUpdateMessage($"ERROR: Algorithm exception: {ex.Message}");
-                            m_log.Publish(MessageLevel.Error, "AlgorithmError", "Failed while processing data from the historian", exception: ex);
-                        }
+                        // Show some operational statistics
+                        long expectedPoints = (long)(timeRange * m_settings.FrameRate * algorithm.Metadata.Count);
+                        double dataCompleteness = Math.Round(receivedPoints / (double)expectedPoints * 100000.0D) / 1000.0D;
+
+                        string overallSummary =
+                            $"Total processing time {operationTime.ToElapsedTimeString(3)} at {receivedPoints / operationTime.ToSeconds():N0} points per second.{Environment.NewLine}" +
+                            $"{Environment.NewLine}" +
+                            $"           Meta-data points: {algorithm.Metadata.Count}{Environment.NewLine}" +
+                            $"          Time-span covered: {timeRange:N0} seconds: {Ticks.FromSeconds(timeRange).ToElapsedTimeString(2)}{Environment.NewLine}" +
+                            $"       Processed timestamps: {processedDataBlocks:N0}{Environment.NewLine}" +
+                            $"            Expected points: {expectedPoints:N0} @ {m_settings.FrameRate:N0} samples per second{Environment.NewLine}" +
+                            $"            Received points: {receivedPoints:N0}{Environment.NewLine}" +
+                            $"           Duplicate points: {duplicatePoints:N0}{Environment.NewLine}" +
+                            $"          Data completeness: {dataCompleteness:N3}%{Environment.NewLine}" + 
+                            $"  First timestamp with data: {firstTimestamp:yyyy-MM-dd HH:mm:ss.fff}{Environment.NewLine}" +
+                            $"   Last timestamp with data: {lastTimestamp:yyyy-MM-dd HH:mm:ss.fff}{Environment.NewLine}";
+
+                        ShowUpdateMessage(overallSummary);
                     }
-
-                    operationTime = DateTime.UtcNow.Ticks - operationStartTime;
-
-                    if (m_formClosing)
-                    {
-                        ShowUpdateMessage("*** Historian Read Canceled ***");
-                        UpdateProgressBar(0);
-                    }
-                    else
-                    {
-                        ShowUpdateMessage("*** Historian Read Complete ***");
-                        UpdateProgressBar(100);
-                    }
-
-                    // Show some operational statistics
-                    long expectedPoints = (long)(timeRange * m_settings.FrameRate * algorithm.Metadata.Count);
-                    double dataCompleteness = Math.Round(receivedPoints / (double)expectedPoints * 100000.0D) / 1000.0D;
-
-                    string overallSummary =
-                        $"Total read time {operationTime.ToElapsedTimeString(3)} at {receivedPoints / operationTime.ToSeconds():N0} points per second.{Environment.NewLine}" +
-                        $"{Environment.NewLine}" +
-                        $"           Meta-data points: {algorithm.Metadata.Count}{Environment.NewLine}" +
-                        $"          Time-span covered: {timeRange:N0} seconds: {Ticks.FromSeconds(timeRange).ToElapsedTimeString(2)}{Environment.NewLine}" +
-                        $"       Processed timestamps: {processedDataBlocks:N0}{Environment.NewLine}" +
-                        $"            Expected points: {expectedPoints:N0} @ {m_settings.FrameRate:N0} samples per second{Environment.NewLine}" +
-                        $"            Received points: {receivedPoints:N0}{Environment.NewLine}" +
-                        $"           Duplicate points: {duplicatePoints:N0}{Environment.NewLine}" +
-                        $"          Data completeness: {dataCompleteness:N3}%{Environment.NewLine}";
-
-                    ShowUpdateMessage(overallSummary);
                 }
             }
             catch (Exception ex)

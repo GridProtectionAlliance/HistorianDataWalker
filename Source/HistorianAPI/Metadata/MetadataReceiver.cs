@@ -206,5 +206,4 @@ namespace HistorianDataWalker.HistorianAPI.Metadata
 
         #endregion
     }
-
 }

@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("HistorianDataWalker")]
-[assembly: AssemblyDescription("Compares two openHistorian Archives for Differences")]
+[assembly: AssemblyDescription("Reads historian data and executes an algorithm over the read data")]
 [assembly: AssemblyCompany("Grid Protection Alliance")]
 [assembly: AssemblyProduct("openHistorian")]
 [assembly: AssemblyCopyright("Copyright © GPA, 2016.  All Rights Reserved.")]
@@ -34,6 +34,6 @@ using System.Runtime.InteropServices;
 //
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
-// [assembly: AssemblyVersion("2.2.52.0")]
-[assembly: AssemblyVersion("2.2.52.0")]
-[assembly: AssemblyFileVersion("2.2.52.0")]
+// [assembly: AssemblyVersion("2.3.0.0")]
+[assembly: AssemblyVersion("2.3.0.0")]
+[assembly: AssemblyFileVersion("2.3.0.0")]

@@ -43,6 +43,7 @@
             this.textBoxMessageOutput = new System.Windows.Forms.TextBox();
             this.buttonGo = new System.Windows.Forms.Button();
             this.groupBoxOptions = new System.Windows.Forms.GroupBox();
+            this.maskedTextBoxFrameRate = new System.Windows.Forms.MaskedTextBox();
             this.labelPointList = new System.Windows.Forms.Label();
             this.textBoxPointList = new System.Windows.Forms.TextBox();
             this.checkBoxEnableLogging = new System.Windows.Forms.CheckBox();
@@ -53,7 +54,6 @@
             this.maskedTextBoxMetadataTimeout = new System.Windows.Forms.MaskedTextBox();
             this.labelFrameRate = new System.Windows.Forms.Label();
             this.labelMetaDataTimeout = new System.Windows.Forms.Label();
-            this.maskedTextBoxFrameRate = new System.Windows.Forms.MaskedTextBox();
             this.labelEndTime = new System.Windows.Forms.Label();
             this.dateTimePickerEndTime = new System.Windows.Forms.DateTimePicker();
             this.labelStartTime = new System.Windows.Forms.Label();
@@ -121,7 +121,7 @@
             this.textBoxHistorianHostAddress.Name = "textBoxHistorianHostAddress";
             this.textBoxHistorianHostAddress.Size = new System.Drawing.Size(88, 20);
             this.textBoxHistorianHostAddress.TabIndex = 1;
-            this.textBoxHistorianHostAddress.Text = "localhost";
+            this.textBoxHistorianHostAddress.Text = "127.0.0.1";
             this.textBoxHistorianHostAddress.TextChanged += new System.EventHandler(this.FormElementChanged);
             // 
             // maskedTextBoxHistorianDataPort
@@ -228,6 +228,7 @@
             // 
             this.groupBoxOptions.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.groupBoxOptions.Controls.Add(this.maskedTextBoxFrameRate);
             this.groupBoxOptions.Controls.Add(this.labelPointList);
             this.groupBoxOptions.Controls.Add(this.textBoxPointList);
             this.groupBoxOptions.Controls.Add(this.checkBoxEnableLogging);
@@ -238,7 +239,6 @@
             this.groupBoxOptions.Controls.Add(this.maskedTextBoxMetadataTimeout);
             this.groupBoxOptions.Controls.Add(this.labelFrameRate);
             this.groupBoxOptions.Controls.Add(this.labelMetaDataTimeout);
-            this.groupBoxOptions.Controls.Add(this.maskedTextBoxFrameRate);
             this.groupBoxOptions.Controls.Add(this.labelEndTime);
             this.groupBoxOptions.Controls.Add(this.dateTimePickerEndTime);
             this.groupBoxOptions.Controls.Add(this.labelStartTime);
@@ -251,6 +251,18 @@
             this.groupBoxOptions.TabIndex = 1;
             this.groupBoxOptions.TabStop = false;
             this.groupBoxOptions.Text = "&Options";
+            // 
+            // maskedTextBoxFrameRate
+            // 
+            this.maskedTextBoxFrameRate.Location = new System.Drawing.Point(110, 120);
+            this.maskedTextBoxFrameRate.Margin = new System.Windows.Forms.Padding(2);
+            this.maskedTextBoxFrameRate.Mask = "000";
+            this.maskedTextBoxFrameRate.Name = "maskedTextBoxFrameRate";
+            this.maskedTextBoxFrameRate.Size = new System.Drawing.Size(31, 20);
+            this.maskedTextBoxFrameRate.TabIndex = 7;
+            this.maskedTextBoxFrameRate.Text = "30";
+            this.maskedTextBoxFrameRate.ValidatingType = typeof(int);
+            this.maskedTextBoxFrameRate.TextChanged += new System.EventHandler(this.FormElementChanged);
             // 
             // labelPointList
             // 
@@ -273,7 +285,8 @@
             this.textBoxPointList.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.textBoxPointList.Size = new System.Drawing.Size(424, 49);
             this.textBoxPointList.TabIndex = 5;
-            this.textBoxPointList.Text = "FILTER MeasurementDetail WHERE SignalAcronym IN (\'VPHM\', \'IPHM\')";
+            this.textBoxPointList.Text = "FILTER MeasurementDetail WHERE SignalAcronym IN (\'IPHM\', \'IPHA\', \'VPHM\', \'VPHA\', " +
+    "\'FREQ\', \'DFDT\', \'ALOG\', \'CALC\')";
             this.textBoxPointList.TextChanged += new System.EventHandler(this.FormElementChanged);
             // 
             // checkBoxEnableLogging
@@ -306,7 +319,7 @@
             // labelMessageInterval
             // 
             this.labelMessageInterval.AutoSize = true;
-            this.labelMessageInterval.Location = new System.Drawing.Point(16, 146);
+            this.labelMessageInterval.Location = new System.Drawing.Point(21, 147);
             this.labelMessageInterval.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.labelMessageInterval.Name = "labelMessageInterval";
             this.labelMessageInterval.Size = new System.Drawing.Size(91, 13);
@@ -354,9 +367,9 @@
             this.labelFrameRate.Location = new System.Drawing.Point(4, 123);
             this.labelFrameRate.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.labelFrameRate.Name = "labelFrameRate";
-            this.labelFrameRate.Size = new System.Drawing.Size(103, 13);
+            this.labelFrameRate.Size = new System.Drawing.Size(108, 13);
             this.labelFrameRate.TabIndex = 6;
-            this.labelFrameRate.Text = "Frame-rate Estimate:";
+            this.labelFrameRate.Text = "Frame Rate Estimate:";
             this.labelFrameRate.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
             // labelMetaDataTimeout
@@ -370,18 +383,6 @@
             this.labelMetaDataTimeout.TabIndex = 9;
             this.labelMetaDataTimeout.Text = "Meta-data Timeout:";
             this.labelMetaDataTimeout.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
-            // 
-            // maskedTextBoxFrameRate
-            // 
-            this.maskedTextBoxFrameRate.Location = new System.Drawing.Point(110, 120);
-            this.maskedTextBoxFrameRate.Margin = new System.Windows.Forms.Padding(2);
-            this.maskedTextBoxFrameRate.Mask = "000";
-            this.maskedTextBoxFrameRate.Name = "maskedTextBoxFrameRate";
-            this.maskedTextBoxFrameRate.Size = new System.Drawing.Size(31, 20);
-            this.maskedTextBoxFrameRate.TabIndex = 7;
-            this.maskedTextBoxFrameRate.Text = "30";
-            this.maskedTextBoxFrameRate.ValidatingType = typeof(int);
-            this.maskedTextBoxFrameRate.TextChanged += new System.EventHandler(this.FormElementChanged);
             // 
             // labelEndTime
             // 
