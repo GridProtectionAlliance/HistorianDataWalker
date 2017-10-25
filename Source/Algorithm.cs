@@ -1,12 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using GSF;
-using GSF.IO;
 using GSF.Diagnostics;
-using GSF.Units;
 using HistorianDataWalker.HistorianAPI;
 using HistorianDataWalker.HistorianAPI.Metadata;
 using System.Runtime.CompilerServices;
@@ -21,7 +17,7 @@ namespace HistorianDataWalker
         #region [ Members ]
 
         // Constants
-        private const string OutputFile = "Output for {0}.txt";
+        //private const string OutputFile = "Output for {0}.txt";
 
         // Meta-data fields
         private List<MetadataRecord> m_metadata;
@@ -34,9 +30,9 @@ namespace HistorianDataWalker
         private long m_nanPointCount;
         private long m_processedDataBlocks;
         private long m_receivedPoints;
-        private DateTime m_lastTimestamp = new DateTime(0L);
-        private Dictionary<ulong, long> m_pointCounts;
-        private Dictionary<ulong, long> m_nanCounts;
+        private DateTime m_lastTimestamp;
+        private readonly Dictionary<ulong, long> m_pointCounts;
+        private readonly Dictionary<ulong, long> m_nanCounts;
 
         private bool m_disposed;
 
@@ -170,9 +166,9 @@ namespace HistorianDataWalker
         /// </summary>
         public void Initialize()
         {
-            // TODO: Open any ouput files here, can also write initial headers, etc...
+            // TODO: Open any output files here, can also write initial headers, etc...
             //m_outputFile = File.CreateText(FilePath.GetAbsolutePath(string.Format(OutputFile, "My Summary")));
-            //m_outputFile.WriteLine($"This file captures any instanataneous imbalances exceeding {ImbalanceThreshold:0.00%}");
+            //m_outputFile.WriteLine($"This file captures any instantaneous imbalances exceeding {ImbalanceThreshold:0.00%}");
             //m_outputFile.WriteLine($"Details cover data from {StartTime:yyyy-MM-dd HH:mm:ss.fff} to {EndTime:yyyy-MM-dd HH:mm:ss.fff} spanning {Time.ToElapsedTimeString(TimeRange, 3).ToLowerInvariant()}{Environment.NewLine}");
         }
 
