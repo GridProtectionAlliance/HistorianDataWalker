@@ -276,7 +276,7 @@ namespace HistorianDataWalker
             if (currentSecond > lastSecond)
             {
                 long expectedPoints = (long)((currentSecond - m_lastTimestamp).TotalSeconds * FrameRate * Metadata.Count);
-                m_missingPointCount += (expectedPoints - m_receivedPoints);
+                m_missingPointCount += expectedPoints - m_receivedPoints;
 
                 m_lastTimestamp = currentSecond;
                 m_receivedPoints = 0;

@@ -77,7 +77,7 @@ namespace HistorianDataWalker
             try
             {
                 // Load current settings registering a symbolic reference to this form instance for use by default value expressions
-                m_settings = new Settings(new Dictionary<string, object> { { "Form", this } }.RegisterSymbols());
+                m_settings = new Settings(new Dictionary<string, object> {{ "Form", this }}.RegisterSymbols());
 
                 // Restore last window size/location
                 this.RestoreLayout();
@@ -410,12 +410,6 @@ namespace HistorianDataWalker
             {
                 SetGoButtonEnabledState(true);
             }
-        }
-
-        private static string GetRootTagName(string tagName)
-        {
-            int lastBangIndex = tagName.LastIndexOf('!');
-            return lastBangIndex > -1 ? tagName.Substring(lastBangIndex + 1).Trim() : tagName.Trim();
         }
 
         #endregion
